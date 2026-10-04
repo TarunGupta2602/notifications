@@ -68,6 +68,6 @@ export async function POST(request: Request) {
 
   const item = await addBroadcast({ title, body, action, tone, phone: phone || undefined, image });
   const notice = item.phone ? `${item.body}\n${item.phone}` : item.body;
-  const push = await deliverPush({ title: item.title, body: notice });
+  const push = await deliverPush({ title: item.title, body: notice, phone: item.phone });
   return NextResponse.json({ item, push });
 }

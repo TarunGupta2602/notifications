@@ -21,8 +21,17 @@ function showNotification(data) {
   const title = typeof data.title === "string" && data.title ? data.title : "Lark";
   const body = typeof data.body === "string" ? data.body : "";
   const tag = typeof data.tag === "string" && data.tag ? data.tag : `lark-${Date.now()}`;
+  const phone = typeof data.phone === "string" ? data.phone.replace(/[^\d+]/g, "") : "";
+  const options = {
+    body,
+    tag,
+    data: { url: "/", phone },
+  };
+  if (phone) options.actions = [{ action: "call", title: "Call" }];
 
-  return self.registration.showNotification(title, { body, tag });
+  return self.registration.showNotification(title, options).catch(() =>
+    self.registration.showNotification(title, { body, tag }),
+  );
 }
 
 async function refreshSubscription(event) {
@@ -87,14 +96,18 @@ self.addEventListener("pushsubscriptionchange", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
+  const phone = event.notification.data && event.notification.data.phone;
+  const target = event.action === "call" && phone ? `tel:${phone}` : "/";
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
-      for (const client of clientList) {
-        if (client.url.startsWith(self.location.origin) && "focus" in client) {
-          return client.focus();
+      if (target === "/") {
+        for (const client of clientList) {
+          if (client.url.startsWith(self.location.origin) && "focus" in client) {
+            return client.focus();
+          }
         }
       }
-      if (self.clients.openWindow) return self.clients.openWindow("/");
+      if (self.clients.openWindow) return self.clients.openWindow(target);
     }),
   );
 });
