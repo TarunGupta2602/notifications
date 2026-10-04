@@ -41,7 +41,7 @@ export function AlertCard({
             <path d="M8 1.5 15 14H1L8 1.5Zm0 4.2c-.4 0-.7.3-.7.7v3.1c0 .4.3.7.7.7s.7-.3.7-.7V6.4c0-.4-.3-.7-.7-.7Zm0 6.1a.8.8 0 1 0 0 1.6.8.8 0 0 0 0-1.6Z" />
           </svg>
         </span>
-        <p className="min-w-0 flex-1 truncate text-[11px] font-medium text-white/90">Lark</p>
+        <p className="min-w-0 flex-1 truncate text-[11px] font-medium text-white/90">Windows</p>
         {onClose ? (
           <button
             type="button"
