@@ -77,11 +77,10 @@ async function writeAll(items: Broadcast[]) {
   }
 }
 
-export async function addBroadcast(input: Omit<Broadcast, "id" | "at"> & { id?: string }) {
-  const id = input.id && /^[A-Za-z0-9-]{8,80}$/.test(input.id) ? input.id : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+export async function addBroadcast(input: Omit<Broadcast, "id" | "at">) {
   const item: Broadcast = {
     ...input,
-    id,
+    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
     at: new Date().toISOString(),
   };
   const all = await readAll();

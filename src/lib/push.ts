@@ -11,7 +11,7 @@ function ensureVapid() {
   setVapidDetails(subject, publicKey, privateKey);
 }
 
-export async function deliverPush(input: { title: string; body: string; tag?: string }) {
+export async function deliverPush(input: { title: string; body: string }) {
   try {
     ensureVapid();
   } catch {
@@ -22,7 +22,7 @@ export async function deliverPush(input: { title: string; body: string; tag?: st
   const message = JSON.stringify({
     title: input.title,
     body: input.body,
-    tag: input.tag ?? `lark-${Date.now()}`,
+    tag: `lark-${Date.now()}`,
   });
 
   let delivered = 0;

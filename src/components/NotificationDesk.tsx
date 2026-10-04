@@ -187,13 +187,12 @@ export function NotificationDesk() {
     setToasts((current) => [toast, ...current].slice(0, 4));
     publishAlert(toast);
     rememberAlert(toast);
-    showBrowserNotification({ title: toast.title, body: toast.body, phone: toast.phone, tag: `lark-${toast.id}` });
+    showBrowserNotification({ title: toast.title, body: toast.body, phone: toast.phone });
     try {
       const response = await fetch("/api/broadcast", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id: toast.id,
           title: toast.title,
           body: toast.body,
           action: toast.action,
@@ -214,7 +213,7 @@ export function NotificationDesk() {
       const delivered = data?.push?.delivered ?? 0;
       if (delivered > 0) {
         setStatus(
-          `Sent to ${delivered} browser${delivered === 1 ? "" : "s"}. It still arrives if the window is minimized, on another tab, or closed.`,
+          `Sent to ${delivered} browser${delivered === 1 ? "" : "s"}. It still arrives if the site is closed.`,
         );
         return;
       }

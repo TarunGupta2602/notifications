@@ -31,40 +31,13 @@ export function rememberedAlert() {
 export function showBrowserNotification(input: { title: string; body: string; phone?: string; tag?: string }) {
   if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
   const body = input.phone ? `${input.body}\n${input.phone}` : input.body;
-  const tag = input.tag ?? `lark-${Date.now()}`;
-  const options = {
-    body,
-    tag,
-    icon: "/notify-icon.png",
-    requireInteraction: true,
-    data: { url: "/" },
-  };
-
-  const fallback = () => {
-    try {
-      new Notification(input.title, { body, tag, icon: `${window.location.origin}/notify-icon.png` });
-    } catch {
-      // A closed browser still receives the service-worker push.
-    }
-  };
-
-  if (!("serviceWorker" in navigator)) {
-    fallback();
-    return;
+  try {
+    new Notification(input.title, {
+      body,
+      tag: input.tag ?? `lark-${input.title}-${input.body}`.slice(0, 180),
+      icon: `${window.location.origin}/badge`,
+    });
+  } catch {
+    // A closed browser still receives the service-worker push.
   }
-
-  void navigator.serviceWorker
-    .getRegistration()
-    .then(async (registration) => {
-      if (!registration) {
-        fallback();
-        return;
-      }
-      try {
-        await registration.showNotification(input.title, options);
-      } catch {
-        fallback();
-      }
-    })
-    .catch(fallback);
 }
