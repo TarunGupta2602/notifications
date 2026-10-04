@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { BlobNotFoundError, get, put } from "@vercel/blob";
 import { kvConfigured, kvGet, kvSet, memoryGet, memorySet } from "@/lib/kv";
 
 export type StoredSubscription = {
@@ -13,6 +14,32 @@ export type StoredSubscription = {
 
 const filePath = path.join(process.cwd(), "data", "subscriptions.json");
 const storeKey = "lark:subscriptions";
+const blobPath = "lark-subscriptions.json";
+
+function blobConfigured() {
+  return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+}
+
+async function readBlob() {
+  try {
+    const result = await get(blobPath, { access: "private", useCache: false });
+    if (!result || result.statusCode !== 200 || !result.stream) return null;
+    return await new Response(result.stream).text();
+  } catch (error) {
+    if (error instanceof BlobNotFoundError) return null;
+    throw error;
+  }
+}
+
+async function writeBlob(raw: string) {
+  await put(blobPath, raw, {
+    access: "private",
+    addRandomSuffix: false,
+    allowOverwrite: true,
+    contentType: "application/json",
+    cacheControlMaxAge: 60,
+  });
+}
 
 let chain: Promise<unknown> = Promise.resolve();
 
@@ -46,27 +73,32 @@ export function isStoredSubscription(value: unknown): value is StoredSubscriptio
   return true;
 }
 
-async function readAll() {
-  try {
-    let raw: string | null = null;
-    if (kvConfigured()) raw = await kvGet(storeKey);
-    else {
-      raw = await readFile(filePath, "utf8").catch(() => null);
-      if (raw) memorySet(storeKey, raw);
-      else raw = memoryGet(storeKey);
-    }
-    if (!raw) return [];
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter(isStoredSubscription);
-  } catch {
-    return [];
+async function readRaw() {
+  if (blobConfigured()) return readBlob();
+  if (kvConfigured()) return kvGet(storeKey);
+  const fromFile = await readFile(filePath, "utf8").catch(() => null);
+  if (fromFile) {
+    memorySet(storeKey, fromFile);
+    return fromFile;
   }
+  return memoryGet(storeKey);
+}
+
+async function readAll() {
+  const raw = await readRaw();
+  if (!raw) return [];
+  const parsed: unknown = JSON.parse(raw);
+  if (!Array.isArray(parsed)) return [];
+  return parsed.filter(isStoredSubscription);
 }
 
 async function writeAll(subscriptions: StoredSubscription[]) {
   const raw = JSON.stringify(subscriptions, null, 2);
   memorySet(storeKey, raw);
+  if (blobConfigured()) {
+    await writeBlob(raw);
+    return;
+  }
   if (kvConfigured()) {
     await kvSet(storeKey, raw);
     return;
