@@ -176,16 +176,6 @@ export function LiveToasts() {
       });
     }
 
-    function onPointerDown() {
-      if (!("Notification" in window) || Notification.permission !== "default") return;
-      void Notification.requestPermission().then((result) => {
-        if (result === "granted") {
-          void subscribeForBackgroundAlerts().catch(() => undefined);
-          replayTriple();
-        }
-      });
-    }
-
     void registerAlertWorker().catch(() => undefined);
     if ("Notification" in window && Notification.permission === "granted") {
       void subscribeForBackgroundAlerts().catch(() => undefined);
@@ -193,7 +183,6 @@ export function LiveToasts() {
 
     const channel = typeof BroadcastChannel === "undefined" ? null : new BroadcastChannel(ALERT_CHANNEL);
     channel?.addEventListener("message", onChannel);
-    window.addEventListener("pointerdown", onPointerDown);
     void showLatestThreeTimes();
     const timer = window.setInterval(() => {
       void pullNew();
@@ -205,14 +194,16 @@ export function LiveToasts() {
       window.clearInterval(timer);
       channel?.removeEventListener("message", onChannel);
       channel?.close();
-      window.removeEventListener("pointerdown", onPointerDown);
       void audio?.close();
     };
   }, [isDesk]);
 
-  if (isDesk || toasts.length === 0) return null;
+  if (isDesk) return null;
 
   return (
+    <>
+      <AllowAlerts />
+      {toasts.length === 0 ? null : (
     <div className="pointer-events-none fixed top-4 right-3 z-50 flex w-[320px] max-w-[calc(100vw-1.5rem)] flex-col gap-1.5">
       {toasts.map((toast) => (
         <div key={toast.id} className="pointer-events-auto">
@@ -226,6 +217,55 @@ export function LiveToasts() {
           />
         </div>
       ))}
+    </div>
+      )}
+    </>
+  );
+}
+
+function AllowAlerts() {
+  const [permission, setPermission] = useState<NotificationPermission | "unsupported" | "loading">("loading");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!("Notification" in window) || !window.isSecureContext) {
+      setPermission("unsupported");
+      return;
+    }
+    setPermission(Notification.permission);
+  }, []);
+
+  if (permission !== "default" && permission !== "denied") return null;
+
+  function allow() {
+    if (!("Notification" in window)) return;
+    const pending = Notification.requestPermission();
+    setBusy(true);
+    void pending
+      .then(async (result) => {
+        setPermission(result);
+        if (result === "granted") await subscribeForBackgroundAlerts();
+      })
+      .finally(() => setBusy(false));
+  }
+
+  return (
+    <div className="fixed bottom-4 left-1/2 z-50 flex w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 items-center gap-3 rounded-2xl bg-[#1f3d32] px-4 py-3 text-white shadow-lg">
+      <p className="min-w-0 flex-1 text-sm leading-5">
+        {permission === "denied"
+          ? "Notifications are blocked. Use the lock icon, choose Allow, then refresh."
+          : "Allow alerts. They still arrive if this tab is closed, another tab is open, or the browser is shut."}
+      </p>
+      {permission === "default" ? (
+        <button
+          type="button"
+          onClick={allow}
+          disabled={busy}
+          className="shrink-0 rounded-full bg-white px-3 py-2 text-sm font-semibold text-[#1f3d32] disabled:opacity-60"
+        >
+          {busy ? "Allow it…" : "Allow"}
+        </button>
+      ) : null}
     </div>
   );
 }
