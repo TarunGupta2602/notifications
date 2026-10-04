@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# saved browser push subscriptions
+/data/subscriptions.json
+/data/broadcasts.json
