@@ -8,6 +8,7 @@ export type Broadcast = {
   action: string;
   tone: "down" | "load" | "custom" | "order" | "reminder" | "offer";
   phone?: string;
+  image?: string;
   at: string;
 };
 
@@ -22,6 +23,7 @@ function isBroadcast(value: unknown): value is Broadcast {
     typeof record.body === "string" &&
     typeof record.action === "string" &&
     (record.phone === undefined || typeof record.phone === "string") &&
+    (record.image === undefined || typeof record.image === "string") &&
     (record.tone === "down" ||
       record.tone === "load" ||
       record.tone === "custom" ||

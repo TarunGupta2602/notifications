@@ -10,6 +10,7 @@ type LiveToast = {
   action: string;
   tone: AlertTone;
   phone?: string;
+  image?: string;
   at: string;
 };
 
@@ -113,13 +114,14 @@ export function LiveToasts() {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="pointer-events-none fixed top-16 right-3 z-50 flex w-[340px] max-w-[calc(100vw-1.5rem)] flex-col gap-2">
+    <div className="pointer-events-none fixed top-4 right-3 z-50 flex w-[320px] max-w-[calc(100vw-1.5rem)] flex-col gap-1.5">
       {toasts.map((toast) => (
         <div key={toast.id} className="pointer-events-auto">
           <AlertCard
             title={toast.title}
             body={toast.body}
             phone={toast.phone}
+            image={toast.image}
             tone={toast.tone}
             onClose={() => setToasts((current) => current.filter((item) => item.id !== toast.id))}
           />

@@ -9,6 +9,13 @@ function clean(value: unknown, max: number) {
   return value.replace(/[\u0000-\u001F\u007F]/g, " ").replace(/\s+/g, " ").trim().slice(0, max);
 }
 
+function cleanImage(value: unknown) {
+  if (typeof value !== "string" || !value.trim()) return undefined;
+  if (value.length > 160_000) return null;
+  if (!/^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/]+=*$/.test(value)) return null;
+  return value;
+}
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
   if (url.searchParams.get("latest") === "1") {
@@ -28,11 +35,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
   }
 
-  const record = payload as { title?: unknown; body?: unknown; action?: unknown; tone?: unknown; phone?: unknown };
+  const record = payload as {
+    title?: unknown;
+    body?: unknown;
+    action?: unknown;
+    tone?: unknown;
+    phone?: unknown;
+    image?: unknown;
+  };
   const title = clean(record.title, 80);
   const body = clean(record.body, 180);
   const action = clean(record.action, 40) || "Open";
   const phone = clean(record.phone, 20).replace(/[^\d+]/g, "");
+  const image = cleanImage(record.image);
   const tone =
     record.tone === "down" ||
     record.tone === "load" ||
@@ -46,7 +61,10 @@ export async function POST(request: Request) {
   if (!title || !body) {
     return NextResponse.json({ error: "Add a title and a message." }, { status: 400 });
   }
+  if (image === null) {
+    return NextResponse.json({ error: "Use a smaller photo. JPG, PNG, or WebP." }, { status: 400 });
+  }
 
-  const item = await addBroadcast({ title, body, action, tone, phone: phone || undefined });
+  const item = await addBroadcast({ title, body, action, tone, phone: phone || undefined, image });
   return NextResponse.json({ item });
 }

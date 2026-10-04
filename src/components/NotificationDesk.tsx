@@ -31,12 +31,54 @@ type SideToast = {
   action: string;
   tone: ToastTone;
   phone?: string;
+  image?: string;
   at: string;
 };
 
 function telHref(phone: string) {
   const cleaned = phone.replace(/[^\d+]/g, "");
   return cleaned ? `tel:${cleaned}` : "";
+}
+
+function shrinkImage(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    if (!file.type.startsWith("image/")) {
+      reject(new Error("Choose a photo."));
+      return;
+    }
+    if (file.size > 4_000_000) {
+      reject(new Error("Image is too large."));
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const max = 280;
+      const scale = Math.min(1, max / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(img.width * scale));
+      canvas.height = Math.max(1, Math.round(img.height * scale));
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        URL.revokeObjectURL(url);
+        reject(new Error("Could not read that image."));
+        return;
+      }
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const data = canvas.toDataURL("image/jpeg", 0.72);
+      URL.revokeObjectURL(url);
+      if (data.length > 150_000) {
+        reject(new Error("Image is too large. Try a smaller photo."));
+        return;
+      }
+      resolve(data);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Could not read that image."));
+    };
+    img.src = url;
+  });
 }
 
 const DELAYS = [
@@ -118,6 +160,7 @@ export function NotificationDesk() {
   const [title, setTitle] = useState("Website is down");
   const [body, setBody] = useState("The site is not opening right now. Call this number and we will check it.");
   const [phone, setPhone] = useState("");
+  const [image, setImage] = useState("");
   const [toasts, setToasts] = useState<SideToast[]>([]);
   const [delay, setDelay] = useState(0);
   const [pendingIn, setPendingIn] = useState<number | null>(null);
@@ -145,7 +188,7 @@ export function NotificationDesk() {
     });
   }, []);
 
-  const pushToast = useCallback((nextTitle: string, nextBody: string, nextPhone: string) => {
+  const pushToast = useCallback((nextTitle: string, nextBody: string, nextPhone: string, nextImage: string) => {
     const preset = PRESETS.find((item) => item.title === nextTitle);
     const action = preset?.action ?? "Open";
     const toast: SideToast = {
@@ -155,6 +198,7 @@ export function NotificationDesk() {
       action,
       tone: preset?.tone ?? "custom",
       phone: action === "Call" ? nextPhone : undefined,
+      image: nextImage || undefined,
       at: new Date().toISOString(),
     };
     setToasts((current) => [toast, ...current].slice(0, 4));
@@ -167,7 +211,12 @@ export function NotificationDesk() {
         action: toast.action,
         tone: toast.tone,
         phone: toast.phone ?? "",
+        image: toast.image ?? "",
       }),
+    }).then(async (response) => {
+      if (response.ok) return;
+      const data = (await response.json().catch(() => null)) as { error?: string } | null;
+      setError(data?.error || "The alert was not saved.");
     });
   }, []);
 
@@ -183,7 +232,7 @@ export function NotificationDesk() {
         return;
       }
 
-      pushToast(nextTitle, nextBody, phone);
+      pushToast(nextTitle, nextBody, phone, image);
       remember(nextTitle, nextBody);
       setStatus("Sent. It shows on the shop page.");
 
@@ -207,7 +256,7 @@ export function NotificationDesk() {
         setSending(false);
       }
     },
-    [phone, pushToast, remember],
+    [image, phone, pushToast, remember],
   );
 
   const connect = useCallback(
@@ -398,13 +447,14 @@ export function NotificationDesk() {
 
   return (
     <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-      <div className="pointer-events-none fixed top-16 right-3 z-50 flex w-[340px] max-w-[calc(100vw-1.5rem)] flex-col gap-2">
+      <div className="pointer-events-none fixed top-4 right-3 z-50 flex w-[320px] max-w-[calc(100vw-1.5rem)] flex-col gap-1.5">
         {toasts.map((toast) => (
           <div key={toast.id} className="pointer-events-auto">
             <AlertCard
               title={toast.title}
               body={toast.body}
               phone={toast.phone}
+              image={toast.image}
               tone={toast.tone}
               onClose={() => setToasts((current) => current.filter((item) => item.id !== toast.id))}
             />
@@ -466,6 +516,45 @@ export function NotificationDesk() {
               onChange={(event) => setBody(event.target.value)}
               className="resize-none rounded-lg border border-line bg-white px-3 py-2.5 text-base font-normal outline-none focus:border-ink disabled:bg-[#f8f8f8]"
             />
+          </label>
+
+          <label className="grid gap-1.5 text-sm font-medium">
+            Image
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              disabled={locked}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                event.target.value = "";
+                if (!file) return;
+                void shrinkImage(file)
+                  .then((next) => {
+                    setImage(next);
+                    setError("");
+                  })
+                  .catch((reason: unknown) => {
+                    setImage("");
+                    setError(reason instanceof Error ? reason.message : "Could not read that image.");
+                  });
+              }}
+              className="block w-full text-sm font-normal file:mr-3 file:h-9 file:rounded-md file:border-0 file:bg-[#f3f4f6] file:px-3 file:text-sm file:font-medium"
+            />
+            {image ? (
+              <span className="flex items-center gap-3">
+                <span
+                  role="img"
+                  aria-label="Chosen image"
+                  className="h-12 w-12 rounded bg-cover bg-center"
+                  style={{ backgroundImage: `url("${image}")` }}
+                />
+                <button type="button" onClick={() => setImage("")} className="text-sm font-normal text-muted underline">
+                  Remove image
+                </button>
+              </span>
+            ) : (
+              <span className="text-xs font-normal text-muted">Shows on the left of the alert, like the sample cards.</span>
+            )}
           </label>
 
           <label className="grid gap-1.5 text-sm font-medium">
@@ -534,6 +623,7 @@ export function NotificationDesk() {
               title={previewTitle}
               body={previewBody}
               phone={phone || "Your number"}
+              image={image}
               tone={PRESETS.find((item) => item.title === title.trim())?.tone ?? "custom"}
             />
           </div>
