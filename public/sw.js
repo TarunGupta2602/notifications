@@ -22,10 +22,7 @@ function showNotification(data) {
   const body = typeof data.body === "string" ? data.body : "";
   const tag = typeof data.tag === "string" && data.tag ? data.tag : `lark-${Date.now()}`;
 
-  const options = { body, tag, requireInteraction: true, data: { url: "/" } };
-  return self.registration.showNotification(title, options).catch(() =>
-    self.registration.showNotification(title, { body, tag }),
-  );
+  return self.registration.showNotification(title, { body, tag });
 }
 
 async function refreshSubscription(event) {

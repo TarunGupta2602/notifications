@@ -225,7 +225,9 @@ export function LiveToasts() {
 
 function AllowAlerts() {
   const [permission, setPermission] = useState<NotificationPermission | "unsupported" | "loading">("loading");
+  const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState("");
 
   useEffect(() => {
     if (!("Notification" in window) || !window.isSecureContext) {
@@ -233,20 +235,35 @@ function AllowAlerts() {
       return;
     }
     setPermission(Notification.permission);
+    if (Notification.permission !== "granted") return;
+    void subscribeForBackgroundAlerts()
+      .then((result) => {
+        if (result.ok) setReady(true);
+        else setNote("Tap Allow again so alerts can arrive after this tab is closed.");
+      })
+      .catch(() => setNote("Tap Allow again so alerts can arrive after this tab is closed."));
   }, []);
 
-  if (permission !== "default" && permission !== "denied") return null;
+  if (permission === "loading" || permission === "unsupported" || ready) return null;
 
   function allow() {
     if (!("Notification" in window)) return;
-    const pending = Notification.requestPermission();
     setBusy(true);
-    void pending
-      .then(async (result) => {
-        setPermission(result);
-        if (result === "granted") await subscribeForBackgroundAlerts();
-      })
-      .finally(() => setBusy(false));
+    setNote("");
+
+    const finish = async (result: NotificationPermission) => {
+      setPermission(result);
+      if (result !== "granted") return;
+      const saved = await subscribeForBackgroundAlerts();
+      if (saved.ok) {
+        setReady(true);
+        return;
+      }
+      setNote("This browser is not saved yet. Tap Allow again.");
+    };
+
+    const pending = Notification.permission === "granted" ? finish("granted") : Notification.requestPermission().then(finish);
+    void pending.catch(() => setNote("This browser is not saved yet. Tap Allow again.")).finally(() => setBusy(false));
   }
 
   return (
@@ -254,16 +271,16 @@ function AllowAlerts() {
       <p className="min-w-0 flex-1 text-sm leading-5">
         {permission === "denied"
           ? "Notifications are blocked. Use the lock icon, choose Allow, then refresh."
-          : "Allow alerts. They still arrive if this tab is closed, another tab is open, or the browser is shut."}
+          : note || "Tap Allow once. Alerts still arrive if this tab is closed, another tab is open, or the browser is shut."}
       </p>
-      {permission === "default" ? (
+      {permission !== "denied" ? (
         <button
           type="button"
           onClick={allow}
           disabled={busy}
           className="shrink-0 rounded-full bg-white px-3 py-2 text-sm font-semibold text-[#1f3d32] disabled:opacity-60"
         >
-          {busy ? "Allow it…" : "Allow"}
+          {busy ? "Saving…" : "Allow"}
         </button>
       ) : null}
     </div>
