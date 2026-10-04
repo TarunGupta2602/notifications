@@ -21,11 +21,19 @@ function showNotification(data) {
   const title = typeof data.title === "string" && data.title ? data.title : "Lark";
   const body = typeof data.body === "string" ? data.body : "";
   const tag = typeof data.tag === "string" && data.tag ? data.tag : `lark-${Date.now()}`;
-  const payload = { body, tag, data: { url: "/" } };
+  const options = {
+    body,
+    tag,
+    icon: "/notify-icon.png",
+    badge: "/notify-icon.png",
+    requireInteraction: true,
+    timestamp: Date.now(),
+    data: { url: "/" },
+  };
 
-  return self.registration
-    .showNotification(title, { ...payload, icon: "/badge", badge: "/badge", renotify: true })
-    .catch(() => self.registration.showNotification(title, payload));
+  return self.registration.showNotification(title, options).catch(() =>
+    self.registration.showNotification(title, { body, tag, requireInteraction: true }),
+  );
 }
 
 async function refreshSubscription(event) {
@@ -74,7 +82,12 @@ self.addEventListener("push", (event) => {
 });
 
 self.addEventListener("message", (event) => {
-  if (event.data && event.data.type === "SHOW_NOTIFICATION") {
+  if (!event.data) return;
+  if (event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+    return;
+  }
+  if (event.data.type === "SHOW_NOTIFICATION") {
     event.waitUntil(showNotification(event.data));
   }
 });

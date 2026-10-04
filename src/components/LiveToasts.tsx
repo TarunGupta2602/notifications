@@ -55,13 +55,12 @@ function contentKey(item: LiveToast) {
   return `${item.title}\n${item.body}\n${item.phone ?? ""}`;
 }
 
-function notifyOtherTab(item: LiveToast) {
-  const copy = item.id.match(/-load-(\d+)$/)?.[1];
+function notifyOnSystem(item: LiveToast) {
   showBrowserNotification({
     title: item.title,
     body: item.body,
     phone: item.phone,
-    tag: copy ? `lark-load-${item.id}` : `lark-${item.title}-${item.body}`.slice(0, 180),
+    tag: `lark-${item.id.replace(/-load-\d+$/, "")}`,
   });
 }
 
@@ -83,7 +82,6 @@ export function LiveToasts() {
     const audio = AudioCtx ? new AudioCtx() : null;
 
     let latestForTriple: LiveToast | null = null;
-    let loadNotified = false;
 
     function pump() {
       if (stopped || busy) return;
@@ -92,7 +90,7 @@ export function LiveToasts() {
       busy = true;
       setToasts((current) => [...current, next].slice(-6));
       if (audio) playChime(audio);
-      if (!next.id.includes("-load-")) notifyOtherTab(next);
+      if (!next.id.includes("-load-")) notifyOnSystem(next);
       wait = window.setTimeout(() => {
         busy = false;
         pump();
@@ -155,7 +153,6 @@ export function LiveToasts() {
           id: `${latestForTriple!.id}-load-${copy}`,
         })),
       );
-      replayTriple();
     }
 
     function onChannel(event: MessageEvent) {
@@ -165,23 +162,11 @@ export function LiveToasts() {
       enqueueLive([{ ...item, tone, action: item.action || "Call" }]);
     }
 
-    function replayTriple() {
-      if (loadNotified || !latestForTriple || Notification.permission !== "granted") return;
-      loadNotified = true;
-      [0, 1, 2].forEach((copy) => {
-        window.setTimeout(() => {
-          if (stopped) return;
-          notifyOtherTab({ ...latestForTriple!, id: `${latestForTriple!.id}-load-${copy}` });
-        }, copy * GAP_MS);
-      });
-    }
-
     function onPointerDown() {
       if (!("Notification" in window) || Notification.permission !== "default") return;
       void Notification.requestPermission().then((result) => {
         if (result === "granted") {
           void subscribeForBackgroundAlerts().catch(() => undefined);
-          replayTriple();
         }
       });
     }

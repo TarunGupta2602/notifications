@@ -37,6 +37,7 @@ export async function POST(request: Request) {
   }
 
   const record = payload as {
+    id?: unknown;
     title?: unknown;
     body?: unknown;
     action?: unknown;
@@ -44,6 +45,7 @@ export async function POST(request: Request) {
     phone?: unknown;
     image?: unknown;
   };
+  const requestedId = clean(record.id, 80);
   const title = clean(record.title, 80);
   const body = clean(record.body, 180);
   const action = clean(record.action, 40) || "Open";
@@ -66,8 +68,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Use a smaller photo. JPG, PNG, or WebP." }, { status: 400 });
   }
 
-  const item = await addBroadcast({ title, body, action, tone, phone: phone || undefined, image });
+  const item = await addBroadcast({
+    id: /^[A-Za-z0-9-]{8,80}$/.test(requestedId) ? requestedId : undefined,
+    title,
+    body,
+    action,
+    tone,
+    phone: phone || undefined,
+    image,
+  });
   const notice = item.phone ? `${item.body}\n${item.phone}` : item.body;
-  const push = await deliverPush({ title: item.title, body: notice });
+  const push = await deliverPush({
+    title: item.title,
+    body: notice,
+    tag: `lark-${item.id}`,
+  });
   return NextResponse.json({ item, push });
 }

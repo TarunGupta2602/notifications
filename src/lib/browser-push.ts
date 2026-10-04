@@ -22,7 +22,9 @@ function sameKey(existing: ArrayBuffer | null | undefined, publicKey: string) {
 
 export async function registerAlertWorker() {
   if (!("serviceWorker" in navigator)) return null;
-  await navigator.serviceWorker.register("/sw.js", { scope: "/", updateViaCache: "none" });
+  const registration = await navigator.serviceWorker.register("/sw.js", { scope: "/", updateViaCache: "none" });
+  await registration.update().catch(() => undefined);
+  if (registration.waiting) registration.waiting.postMessage({ type: "SKIP_WAITING" });
   return navigator.serviceWorker.ready;
 }
 
