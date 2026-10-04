@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isStoredSubscription, listSubscriptions, saveSubscription } from "@/lib/subscriptions";
+import { isStoredSubscription, listSubscriptions, removeSubscription, saveSubscription } from "@/lib/subscriptions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,5 +27,25 @@ export async function POST(request: Request) {
   }
 
   const count = await saveSubscription(payload);
+  return NextResponse.json({ ok: true, count });
+}
+
+export async function DELETE(request: Request) {
+  let payload: unknown;
+  try {
+    payload = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
+  }
+
+  const endpoint =
+    payload && typeof payload === "object" && "endpoint" in payload
+      ? (payload as { endpoint?: unknown }).endpoint
+      : "";
+  if (typeof endpoint !== "string" || endpoint.length < 12 || endpoint.length > 2000) {
+    return NextResponse.json({ error: "Subscription invalid hai." }, { status: 400 });
+  }
+
+  const count = await removeSubscription(endpoint);
   return NextResponse.json({ ok: true, count });
 }

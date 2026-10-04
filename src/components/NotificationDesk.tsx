@@ -2,7 +2,8 @@
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { AlertCard } from "@/components/AlertCard";
-import { publishAlert, showBrowserNotification } from "@/lib/alert-channel";
+import { publishAlert, rememberAlert, showBrowserNotification } from "@/lib/alert-channel";
+import { subscribeForBackgroundAlerts } from "@/lib/browser-push";
 
 const HISTORY_KEY = "suchna-history";
 
@@ -97,23 +98,6 @@ type HistoryItem = {
 type PermissionView = NotificationPermission | "unsupported" | "loading";
 type DeliveryMode = "push" | "local" | "none";
 
-function urlBase64ToUint8Array(base64String: string) {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const raw = window.atob(base64);
-  const output = new Uint8Array(raw.length);
-  for (let index = 0; index < raw.length; index += 1) {
-    output[index] = raw.charCodeAt(index);
-  }
-  return output;
-}
-
-async function ensureWorker() {
-  if (!("serviceWorker" in navigator)) return null;
-  await navigator.serviceWorker.register("/sw.js");
-  return navigator.serviceWorker.ready;
-}
-
 function showLocal(title: string, body: string) {
   const notification = new Notification(title, {
     body,
@@ -171,8 +155,6 @@ export function NotificationDesk() {
   const [error, setError] = useState("");
   const [history, setHistory] = useState<HistoryItem[]>([]);
 
-  const modeRef = useRef<DeliveryMode>("none");
-  const endpointRef = useRef("");
   const timerRef = useRef<number | null>(null);
   const runRef = useRef(0);
   const askRef = useRef<HTMLButtonElement>(null);
@@ -189,7 +171,7 @@ export function NotificationDesk() {
     });
   }, []);
 
-  const pushToast = useCallback((nextTitle: string, nextBody: string, nextPhone: string, nextImage: string) => {
+  const pushToast = useCallback(async (nextTitle: string, nextBody: string, nextPhone: string, nextImage: string) => {
     const preset = PRESETS.find((item) => item.title === nextTitle);
     const action = preset?.action ?? "Open";
     const toast: SideToast = {
@@ -204,23 +186,45 @@ export function NotificationDesk() {
     };
     setToasts((current) => [toast, ...current].slice(0, 4));
     publishAlert(toast);
+    rememberAlert(toast);
     showBrowserNotification({ title: toast.title, body: toast.body, phone: toast.phone });
-    void fetch("/api/broadcast", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: toast.title,
-        body: toast.body,
-        action: toast.action,
-        tone: toast.tone,
-        phone: toast.phone ?? "",
-        image: toast.image ?? "",
-      }),
-    }).then(async (response) => {
-      if (response.ok) return;
-      const data = (await response.json().catch(() => null)) as { error?: string } | null;
-      setError(data?.error || "The alert was not saved.");
-    });
+    try {
+      const response = await fetch("/api/broadcast", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: toast.title,
+          body: toast.body,
+          action: toast.action,
+          tone: toast.tone,
+          phone: toast.phone ?? "",
+          image: toast.image ?? "",
+        }),
+      });
+      const data = (await response.json().catch(() => null)) as {
+        error?: string;
+        push?: { delivered?: number; count?: number; ready?: boolean };
+      } | null;
+      if (!response.ok) {
+        setError(data?.error || "The alert was not saved.");
+        return;
+      }
+      if (typeof data?.push?.count === "number") setCount(data.push.count);
+      const delivered = data?.push?.delivered ?? 0;
+      if (delivered > 0) {
+        setStatus(
+          `Sent to ${delivered} browser${delivered === 1 ? "" : "s"}. It still arrives if the site is closed.`,
+        );
+        return;
+      }
+      if (data?.push?.ready === false) {
+        setStatus("Saved for shop tabs that are open.");
+        return;
+      }
+      setStatus("Saved for shop tabs that are open. After someone chooses Allow, the next alert reaches them with the site closed.");
+    } catch {
+      setError("The alert was not saved.");
+    }
   }, []);
 
   const deliver = useCallback(
@@ -235,62 +239,23 @@ export function NotificationDesk() {
         return;
       }
 
-      pushToast(nextTitle, nextBody, phone, image);
+      await pushToast(nextTitle, nextBody, phone, image);
       remember(nextTitle, nextBody);
-      setStatus("Sent. Open shop tabs show it. Other tabs get a browser notification after Allow.");
       setSending(false);
     },
     [image, phone, pushToast, remember],
   );
 
-  const connect = useCallback(
-    async () => {
-      const response = await fetch("/api/subscribe");
-      const config = (await response.json()) as { publicKey?: string; count?: number; error?: string };
-      if (!response.ok || !config.publicKey) {
-        throw new Error(config.error || "keys missing");
-      }
-      if (typeof config.count === "number") setCount(config.count);
-
-      const registration = await ensureWorker();
-      if (!registration?.pushManager) {
-        modeRef.current = "local";
-        setMode("local");
-      } else {
-        try {
-          let subscription = await registration.pushManager.getSubscription();
-          if (!subscription) {
-            subscription = await registration.pushManager.subscribe({
-              userVisibleOnly: true,
-              applicationServerKey: urlBase64ToUint8Array(config.publicKey),
-            });
-          }
-
-          const json = subscription.toJSON();
-          if (!json.endpoint || !json.keys?.p256dh || !json.keys.auth) {
-            throw new Error("incomplete subscription");
-          }
-
-          endpointRef.current = json.endpoint;
-          const save = await fetch("/api/subscribe", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(json),
-          });
-          const saved = (await save.json()) as { count?: number };
-          if (!save.ok) throw new Error("save failed");
-          if (typeof saved.count === "number") setCount(saved.count);
-          modeRef.current = "push";
-          setMode("push");
-        } catch (subscribeError) {
-          console.error(subscribeError);
-          modeRef.current = "local";
-          setMode("local");
-        }
-      }
-    },
-    [],
-  );
+  const connect = useCallback(async () => {
+    const result = await subscribeForBackgroundAlerts();
+    if (!result.ok) {
+      setMode("local");
+      if (result.reason === "keys") throw new Error("keys missing");
+      return;
+    }
+    setCount(result.count);
+    setMode("push");
+  }, []);
 
   useEffect(() => {
     connectRef.current = connect;
@@ -469,8 +434,8 @@ export function NotificationDesk() {
                 ? "Blocked. Use the lock icon in the address bar, choose Allow, then refresh."
                 : granted
                   ? mode === "push"
-                    ? `${count} browser${count === 1 ? "" : "s"} subscribed`
-                    : "This browser can receive notifications"
+                    ? `${count} browser${count === 1 ? "" : "s"} will get alerts with the site closed`
+                    : "This browser shows alerts while the site is open"
                   : "Turn on notifications for this browser"}
             </p>
           </div>

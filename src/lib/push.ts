@@ -15,14 +15,14 @@ export async function deliverPush(input: { title: string; body: string }) {
   try {
     ensureVapid();
   } catch {
-    return { delivered: 0, failed: 0, count: 0 };
+    return { delivered: 0, failed: 0, count: 0, ready: false };
   }
 
   const subscriptions = await listSubscriptions();
   const message = JSON.stringify({
     title: input.title,
     body: input.body,
-    tag: `lark-${input.title}-${input.body.split("\n")[0]}`.slice(0, 180),
+    tag: `lark-${Date.now()}`,
   });
 
   let delivered = 0;
@@ -48,5 +48,5 @@ export async function deliverPush(input: { title: string; body: string }) {
   );
 
   const count = (await listSubscriptions()).length;
-  return { delivered, failed, count };
+  return { delivered, failed, count, ready: true };
 }
