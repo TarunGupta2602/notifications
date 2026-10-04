@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { kvConfigured, kvGet, kvSet, memoryGet, memorySet } from "@/lib/kv";
 
 export type Broadcast = {
   id: string;
@@ -13,6 +14,7 @@ export type Broadcast = {
 };
 
 const filePath = path.join(process.cwd(), "data", "broadcasts.json");
+const storeKey = "lark:broadcasts";
 
 function isBroadcast(value: unknown): value is Broadcast {
   if (!value || typeof value !== "object") return false;
@@ -34,9 +36,24 @@ function isBroadcast(value: unknown): value is Broadcast {
   );
 }
 
-async function readAll() {
+async function readRaw() {
+  if (kvConfigured()) return kvGet(storeKey);
   try {
     const raw = await readFile(filePath, "utf8");
+    if (raw) {
+      memorySet(storeKey, raw);
+      return raw;
+    }
+  } catch {
+    // Vercel does not keep this file between servers.
+  }
+  return memoryGet(storeKey);
+}
+
+async function readAll() {
+  try {
+    const raw = await readRaw();
+    if (!raw) return [];
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
     return parsed.filter(isBroadcast);
@@ -46,8 +63,18 @@ async function readAll() {
 }
 
 async function writeAll(items: Broadcast[]) {
-  await mkdir(path.dirname(filePath), { recursive: true });
-  await writeFile(filePath, JSON.stringify(items, null, 2));
+  const raw = JSON.stringify(items, null, 2);
+  memorySet(storeKey, raw);
+  if (kvConfigured()) {
+    await kvSet(storeKey, raw);
+    return;
+  }
+  try {
+    await mkdir(path.dirname(filePath), { recursive: true });
+    await writeFile(filePath, raw);
+  } catch {
+    // The in-memory copy still serves this server.
+  }
 }
 
 export async function addBroadcast(input: Omit<Broadcast, "id" | "at">) {

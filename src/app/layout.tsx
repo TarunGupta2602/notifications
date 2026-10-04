@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Noto_Sans_Devanagari } from "next/font/google";
+import { LiveToasts } from "@/components/LiveToasts";
 import "./globals.css";
 
 const sans = Noto_Sans_Devanagari({
@@ -22,7 +23,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${sans.variable} h-full`}>
-      <body className={`${sans.className} min-h-full antialiased`}>{children}</body>
+      <body className={`${sans.className} min-h-full antialiased`}>
+        <LiveToasts />
+        {children}
+      </body>
     </html>
   );
 }

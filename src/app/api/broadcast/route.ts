@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { addBroadcast, latestBroadcast, listBroadcastsAfter } from "@/lib/broadcasts";
+import { deliverPush } from "@/lib/push";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -66,5 +67,7 @@ export async function POST(request: Request) {
   }
 
   const item = await addBroadcast({ title, body, action, tone, phone: phone || undefined, image });
+  const notice = item.phone ? `${item.body}\n${item.phone}` : item.body;
+  await deliverPush({ title: item.title, body: notice });
   return NextResponse.json({ item });
 }

@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { kvConfigured, kvGet, kvSet, memoryGet, memorySet } from "@/lib/kv";
 
 export type StoredSubscription = {
   endpoint: string;
@@ -11,6 +12,7 @@ export type StoredSubscription = {
 };
 
 const filePath = path.join(process.cwd(), "data", "subscriptions.json");
+const storeKey = "lark:subscriptions";
 
 let chain: Promise<unknown> = Promise.resolve();
 
@@ -46,7 +48,14 @@ export function isStoredSubscription(value: unknown): value is StoredSubscriptio
 
 async function readAll() {
   try {
-    const raw = await readFile(filePath, "utf8");
+    let raw: string | null = null;
+    if (kvConfigured()) raw = await kvGet(storeKey);
+    else {
+      raw = await readFile(filePath, "utf8").catch(() => null);
+      if (raw) memorySet(storeKey, raw);
+      else raw = memoryGet(storeKey);
+    }
+    if (!raw) return [];
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
     return parsed.filter(isStoredSubscription);
@@ -56,8 +65,18 @@ async function readAll() {
 }
 
 async function writeAll(subscriptions: StoredSubscription[]) {
-  await mkdir(path.dirname(filePath), { recursive: true });
-  await writeFile(filePath, JSON.stringify(subscriptions, null, 2));
+  const raw = JSON.stringify(subscriptions, null, 2);
+  memorySet(storeKey, raw);
+  if (kvConfigured()) {
+    await kvSet(storeKey, raw);
+    return;
+  }
+  try {
+    await mkdir(path.dirname(filePath), { recursive: true });
+    await writeFile(filePath, raw);
+  } catch {
+    // The in-memory copy still serves this server.
+  }
 }
 
 export function listSubscriptions() {

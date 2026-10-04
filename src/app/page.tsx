@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { LiveToasts } from "@/components/LiveToasts";
 
 const goods = [
   { name: "Heirloom tomatoes", note: "Picked this morning", price: "₹80" },
@@ -11,7 +10,6 @@ const goods = [
 export default function Home() {
   return (
     <div className="min-h-full bg-[#f7f4ee] text-[#1c1915]">
-      <LiveToasts />
       <header className="border-b border-[#e4ddd2]">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-5">
           <Link href="/" className="text-lg font-semibold tracking-tight">

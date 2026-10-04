@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { AlertCard } from "@/components/AlertCard";
+import { publishAlert, showBrowserNotification } from "@/lib/alert-channel";
 
 const HISTORY_KEY = "suchna-history";
 
@@ -202,6 +203,8 @@ export function NotificationDesk() {
       at: new Date().toISOString(),
     };
     setToasts((current) => [toast, ...current].slice(0, 4));
+    publishAlert(toast);
+    showBrowserNotification({ title: toast.title, body: toast.body, phone: toast.phone });
     void fetch("/api/broadcast", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -234,27 +237,8 @@ export function NotificationDesk() {
 
       pushToast(nextTitle, nextBody, phone, image);
       remember(nextTitle, nextBody);
-      setStatus("Sent. It shows on the shop page.");
-
-      try {
-        if (modeRef.current === "push") {
-          const response = await fetch("/api/send", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              title: nextTitle,
-              body: nextBody,
-              endpoint: endpointRef.current,
-            }),
-          });
-          const data = (await response.json()) as { count?: number };
-          if (response.ok && typeof data.count === "number") setCount(data.count);
-        }
-      } catch {
-        setStatus("Shown on the right. The browser notification did not appear.");
-      } finally {
-        setSending(false);
-      }
+      setStatus("Sent. Open shop tabs show it. Other tabs get a browser notification after Allow.");
+      setSending(false);
     },
     [image, phone, pushToast, remember],
   );
@@ -414,30 +398,45 @@ export function NotificationDesk() {
     }
 
     setError("");
-    if (delay === 0) {
-      void deliver(nextTitle, nextBody);
-      return;
-    }
-
-    const runId = runRef.current + 1;
-    runRef.current = runId;
-    let left = delay;
-    setPendingIn(left);
-    setStatus("");
-    timerRef.current = window.setInterval(() => {
-      if (runRef.current !== runId) return;
-      left -= 1;
-      if (left <= 0) {
-        if (timerRef.current !== null) {
-          window.clearInterval(timerRef.current);
-          timerRef.current = null;
-        }
-        setPendingIn(null);
+    const startSend = () => {
+      if (delay === 0) {
         void deliver(nextTitle, nextBody);
         return;
       }
+
+      const runId = runRef.current + 1;
+      runRef.current = runId;
+      let left = delay;
       setPendingIn(left);
-    }, 1000);
+      setStatus("");
+      timerRef.current = window.setInterval(() => {
+        if (runRef.current !== runId) return;
+        left -= 1;
+        if (left <= 0) {
+          if (timerRef.current !== null) {
+            window.clearInterval(timerRef.current);
+            timerRef.current = null;
+          }
+          setPendingIn(null);
+          void deliver(nextTitle, nextBody);
+          return;
+        }
+        setPendingIn(left);
+      }, 1000);
+    };
+
+    if ("Notification" in window && Notification.permission === "default") {
+      const pending = Notification.requestPermission();
+      void pending.then((result) => {
+        if (result === "granted") {
+          void connectRef.current().catch(() => undefined);
+        }
+        startSend();
+      });
+      return;
+    }
+
+    startSend();
   }
 
   const granted = permission === "granted";
