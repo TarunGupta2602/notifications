@@ -420,7 +420,6 @@ export function NotificationDesk() {
               phone={toast.phone}
               image={toast.image}
               tone={toast.tone}
-              onClose={() => setToasts((current) => current.filter((item) => item.id !== toast.id))}
             />
           </div>
         ))}

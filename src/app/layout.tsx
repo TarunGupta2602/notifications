@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Noto_Sans_Devanagari } from "next/font/google";
 import { LiveToasts } from "@/components/LiveToasts";
 import "./globals.css";
+import "./parvah-home.css";
 
 const sans = Noto_Sans_Devanagari({
   subsets: ["devanagari", "latin"],

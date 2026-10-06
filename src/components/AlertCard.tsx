@@ -20,14 +20,12 @@ export function AlertCard({
   phone,
   image,
   tone,
-  onClose,
 }: {
   title: string;
   body: string;
   phone?: string;
   image?: string;
   tone: AlertTone;
-  onClose?: () => void;
 }) {
   const dial = telHref(phone ?? "");
   const colors = shell[tone];
@@ -42,16 +40,6 @@ export function AlertCard({
           </svg>
         </span>
         <p className="min-w-0 flex-1 truncate text-[11px] font-medium text-white/90">Windows</p>
-        {onClose ? (
-          <button
-            type="button"
-            aria-label="Close notification"
-            onClick={onClose}
-            className="flex h-4 w-4 items-center justify-center text-[14px] leading-none text-white/70 hover:text-white"
-          >
-            ×
-          </button>
-        ) : null}
       </div>
       <div className={`px-3 pt-2 pb-2.5 ${colors.body}`}>
         <p className="text-[15px] font-semibold leading-5 text-white">{title}</p>
