@@ -84,8 +84,14 @@ export async function addBroadcast(input: Omit<Broadcast, "id" | "at">) {
     at: new Date().toISOString(),
   };
   const all = await readAll();
-  all.push(item);
-  await writeAll(all.slice(-40));
+  // Filter out old broadcasts with "website is down" or old phone numbers
+  const filtered = all.filter(b => 
+    !b.title.toLowerCase().includes("website is down") &&
+    !b.body.toLowerCase().includes("website is down") &&
+    b.phone !== "7456096455"
+  );
+  filtered.push(item);
+  await writeAll(filtered.slice(-40));
   return item;
 }
 
@@ -96,7 +102,17 @@ export async function latestBroadcast() {
 
 export async function listBroadcastsAfter(after: string) {
   const all = await readAll();
+  // Filter out bad broadcasts
+  const cleaned = all.filter(b =>
+    !b.title.toLowerCase().includes("website is down") &&
+    !b.body.toLowerCase().includes("website is down") &&
+    b.phone !== "7456096455"
+  );
+  // If we filtered anything, rewrite the file
+  if (cleaned.length !== all.length) {
+    await writeAll(cleaned.slice(-40));
+  }
   const cutoff = Date.parse(after);
-  if (Number.isNaN(cutoff)) return all.slice(-10);
-  return all.filter((item) => Date.parse(item.at) > cutoff);
+  if (Number.isNaN(cutoff)) return cleaned.slice(-10);
+  return cleaned.filter((item) => Date.parse(item.at) > cutoff);
 }
