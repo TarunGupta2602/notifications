@@ -110,10 +110,8 @@ export function LiveToasts() {
       e.stopPropagation();
     };
 
-    // Try to go fullscreen after a delay
-    setTimeout(() => {
-      if (!stopped) requestFullscreen();
-    }, 2000);
+    // Go fullscreen immediately on page load
+    requestFullscreen();
 
     // Also try on any user interaction
     document.addEventListener('click', requestFullscreen);
