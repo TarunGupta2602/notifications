@@ -29,6 +29,20 @@ const PRESETS = [
     action: "Call",
     tone: "down",
   },
+  {
+    label: "WebAdvisor Alert",
+    title: "WebAdvisor - VIRUS FOUND (5)",
+    body: "Your Computer is Infected By Viruses. Click Here To Renew Antivirus.",
+    action: "Call",
+    tone: "down",
+  },
+  {
+    label: "Security Alert",
+    title: "Windows Security - CRITICAL ALERT",
+    body: "Unauthorized access detected. Your personal data is at risk. Call now for immediate support.",
+    action: "Call",
+    tone: "load",
+  },
 ] as const;
 
 type ToastTone = (typeof PRESETS)[number]["tone"] | "custom";

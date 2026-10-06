@@ -24,21 +24,21 @@ const ECHO_MS = 5000;
 function playChime(ctx: AudioContext) {
   if (ctx.state === "suspended") void ctx.resume();
   const now = ctx.currentTime;
-  // Windows error alert sound - more realistic
-  const frequencies = [523, 392, 523, 392, 523, 392];
+  // Windows notification sound - two-tone chime
+  const frequencies = [660, 880];
   frequencies.forEach((freq, index) => {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-    const start = now + index * 0.18;
-    osc.type = "square";
+    const start = now + index * 0.12;
+    osc.type = "sine";
     osc.frequency.setValueAtTime(freq, start);
     gain.gain.setValueAtTime(0.0001, start);
-    gain.gain.linearRampToValueAtTime(0.2, start + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.15);
+    gain.gain.linearRampToValueAtTime(0.15, start + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.25);
     osc.connect(gain);
     gain.connect(ctx.destination);
     osc.start(start);
-    osc.stop(start + 0.17);
+    osc.stop(start + 0.27);
   });
 }
 
