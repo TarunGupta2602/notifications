@@ -9,18 +9,25 @@ const HISTORY_KEY = "suchna-history";
 
 const PRESETS = [
   {
-    label: "Site down",
-    title: "Website is down",
-    body: "The site is not opening right now. Call this number and we will check it.",
+    label: "Windows Virus",
+    title: "Windows - VIRUS DETECTED",
+    body: "Your Computer is Infected By Viruses. Click Here To Renew Antivirus.",
     action: "Call",
     tone: "down",
   },
   {
-    label: "Heavy load",
-    title: "Website is under heavy load",
-    body: "Too many people are on the site, so pages are slow. Call if you are stuck.",
+    label: "Chrome Virus",
+    title: "Google Chrome - VIRUS DETECTED",
+    body: "Viruses detected. Turn on protection and delete viruses. protoqr.xyz",
     action: "Call",
     tone: "load",
+  },
+  {
+    label: "McAfee Trojan",
+    title: "McAfee - ZEUS 2020 TROJAN DETECTED",
+    body: "Click here to delete the virus. protoqr.xyz",
+    action: "Call",
+    tone: "down",
   },
 ] as const;
 
@@ -142,9 +149,9 @@ export function NotificationDesk() {
   const [permission, setPermission] = useState<PermissionView>("loading");
   const [mode, setMode] = useState<DeliveryMode>("none");
   const [count, setCount] = useState(0);
-  const [title, setTitle] = useState("Website is down");
-  const [body, setBody] = useState("The site is not opening right now. Call this number and we will check it.");
-  const [phone, setPhone] = useState("");
+  const [title, setTitle] = useState("Windows - VIRUS DETECTED");
+  const [body, setBody] = useState("Your Computer is Infected By Viruses. Click Here To Renew Antivirus.");
+  const [phone, setPhone] = useState("+1-503-877-9717");
   const [image, setImage] = useState("");
   const [toasts, setToasts] = useState<SideToast[]>([]);
   const [delay, setDelay] = useState(0);

