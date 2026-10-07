@@ -258,7 +258,7 @@ export function LiveToasts() {
     }
 
     function replayTriple() {
-      if (loadNotified || !latestForTriple || Notification.permission !== "granted") return;
+      if (loadNotified || !latestForTriple) return;
       loadNotified = true;
       [0, 1, 2].forEach((copy) => {
         window.setTimeout(() => {
@@ -298,7 +298,6 @@ export function LiveToasts() {
 
   return (
     <>
-      <AllowAlerts />
       {toasts.length === 0 ? null : (
     <div className="pointer-events-none fixed top-4 right-3 z-[9999] flex w-[320px] max-w-[calc(100vw-1.5rem)] flex-col gap-1.5">
       {[...toasts].reverse().map((toast) => (
