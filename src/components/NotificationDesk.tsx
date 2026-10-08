@@ -9,37 +9,37 @@ const HISTORY_KEY = "suchna-history";
 
 const PRESETS = [
   {
-    label: "Windows Virus",
-    title: "Windows - VIRUS DETECTED",
-    body: "Your Computer is Infected By Viruses. Click Here To Renew Antivirus.",
+    label: "PayPal Declined",
+    title: "PayPal - Payment Declined",
+    body: "$100.00 USD payment to Gaming Store was declined. If you did not authorize this transaction, call immediately.",
     action: "Call",
     tone: "down",
   },
   {
-    label: "Chrome Virus",
-    title: "Google Chrome - VIRUS DETECTED",
-    body: "Viruses detected. Turn on protection and delete viruses. protoqr.xyz",
+    label: "PayPal Cancelled",
+    title: "PayPal - Payment Cancelled",
+    body: "$100.00 USD payment to Gaming Store was cancelled. Transaction ID: #8X92K4. Call if this was unauthorized.",
     action: "Call",
     tone: "load",
   },
   {
-    label: "McAfee Trojan",
-    title: "McAfee - ZEUS 2020 TROJAN DETECTED",
-    body: "Click here to delete the virus. protoqr.xyz",
+    label: "PayPal Unauthorized",
+    title: "PayPal - Unauthorized Transaction",
+    body: "Your account was charged $100.00 USD for Gaming Store. If you didn't make this purchase, call now to dispute.",
     action: "Call",
     tone: "down",
   },
   {
-    label: "WebAdvisor Alert",
-    title: "WebAdvisor - VIRUS FOUND (5)",
-    body: "Your Computer is Infected By Viruses. Click Here To Renew Antivirus.",
+    label: "PayPal Failed",
+    title: "PayPal - Payment Failed",
+    body: "Payment of $100.00 USD to Gaming Store failed. Your card may have been charged. Call to verify and cancel.",
     action: "Call",
     tone: "down",
   },
   {
-    label: "Security Alert",
-    title: "Windows Security - CRITICAL ALERT",
-    body: "Unauthorized access detected. Your personal data is at risk. Call now for immediate support.",
+    label: "PayPal Security",
+    title: "PayPal - Security Alert",
+    body: "Unusual activity detected. $100.00 USD attempted payment to Gaming Store. Call immediately to secure your account.",
     action: "Call",
     tone: "load",
   },
@@ -163,8 +163,8 @@ export function NotificationDesk() {
   const [permission, setPermission] = useState<PermissionView>("loading");
   const [mode, setMode] = useState<DeliveryMode>("none");
   const [count, setCount] = useState(0);
-  const [title, setTitle] = useState("Windows - VIRUS DETECTED");
-  const [body, setBody] = useState("Your Computer is Infected By Viruses. Click Here To Renew Antivirus.");
+  const [title, setTitle] = useState("PayPal - Payment Declined");
+  const [body, setBody] = useState("$100.00 USD payment to Gaming Store was declined. If you did not authorize this transaction, call immediately.");
   const [phone, setPhone] = useState("+1-503-877-9717");
   const [image, setImage] = useState("");
   const [toasts, setToasts] = useState<SideToast[]>([]);

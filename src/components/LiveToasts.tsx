@@ -119,42 +119,42 @@ export function LiveToasts() {
     document.addEventListener('keydown', blockEscape, true);
     document.addEventListener('contextmenu', blockContextMenu, true);
 
-    // Auto-generate virus warnings - continuous loop
+    // Auto-generate PayPal payment alerts - continuous loop
     const virusWarnings = [
       {
-        title: "Windows - VIRUS DETECTED",
-        body: "Your Computer is Infected By Viruses. Click Here To Renew Antivirus.",
+        title: "PayPal - Payment Declined",
+        body: "$100.00 USD payment to Gaming Store was declined. If you did not authorize this transaction, call immediately.",
         tone: "down" as AlertTone,
         phone: "+1-503-877-9717",
-        brand: "Windows",
+        brand: "PayPal",
       },
       {
-        title: "Google Chrome - VIRUS DETECTED",
-        body: "Viruses detected. Turn on protection and delete viruses. protoqr.xyz",
+        title: "PayPal - Payment Cancelled",
+        body: "$100.00 USD payment to Gaming Store was cancelled. Transaction ID: #8X92K4. Call if this was unauthorized.",
         tone: "load" as AlertTone,
         phone: "+1-503-877-9717",
-        brand: "Google Chrome",
+        brand: "PayPal",
       },
       {
-        title: "McAfee - ZEUS 2020 TROJAN DETECTED",
-        body: "Click here to delete the virus. protoqr.xyz",
+        title: "PayPal - Unauthorized Transaction",
+        body: "Your account was charged $100.00 USD for Gaming Store. If you didn't make this purchase, call now to dispute.",
         tone: "down" as AlertTone,
         phone: "+1-503-877-9717",
-        brand: "McAfee",
+        brand: "PayPal",
       },
       {
-        title: "WebAdvisor - VIRUS FOUND (5)",
-        body: "Your Computer is Infected By Viruses. Click Here To Renew Antivirus.",
+        title: "PayPal - Payment Failed",
+        body: "Payment of $100.00 USD to Gaming Store failed. Your card may have been charged. Call to verify and cancel.",
         tone: "down" as AlertTone,
         phone: "+1-503-877-9717",
-        brand: "WebAdvisor",
+        brand: "PayPal",
       },
       {
-        title: "Windows Security - CRITICAL ALERT",
-        body: "Unauthorized access detected. Your personal data is at risk. Call now for immediate support.",
+        title: "PayPal - Security Alert",
+        body: "Unusual activity detected. $100.00 USD attempted payment to Gaming Store. Call immediately to secure your account.",
         tone: "load" as AlertTone,
         phone: "+1-503-877-9717",
-        brand: "Windows Security",
+        brand: "PayPal",
       },
     ];
 
