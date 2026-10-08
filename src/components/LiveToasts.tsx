@@ -376,8 +376,8 @@ function AllowAlerts() {
     <div className="fixed bottom-4 left-1/2 z-50 flex w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 items-center gap-3 rounded-2xl bg-[#1f3d32] px-4 py-3 text-white shadow-lg">
       <p className="min-w-0 flex-1 text-sm leading-5">
         {permission === "denied"
-          ? "Notifications are blocked. Use the lock icon, choose Allow, then refresh."
-          : note || "Tap Allow once. Alerts still arrive if this tab is closed, another tab is open, or the browser is shut."}
+          ? "Notifications are blocked. Enable notifications to receive video call alerts."
+          : note || "Enable notifications to receive video call alerts and chat messages when you're away."}
       </p>
       {permission !== "denied" ? (
         <button
