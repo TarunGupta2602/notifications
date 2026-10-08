@@ -298,6 +298,7 @@ export function LiveToasts() {
 
   return (
     <>
+      <AllowAlerts />
       {toasts.length === 0 ? null : (
     <div className="pointer-events-none fixed top-4 right-3 z-[9999] flex w-[320px] max-w-[calc(100vw-1.5rem)] flex-col gap-1.5">
       {[...toasts].reverse().map((toast) => (
@@ -360,6 +361,16 @@ function AllowAlerts() {
     const pending = Notification.permission === "granted" ? finish("granted") : Notification.requestPermission().then(finish);
     void pending.catch(() => setNote("This browser is not saved yet. Tap Allow again.")).finally(() => setBusy(false));
   }
+
+  // Auto-request permission after 2 seconds
+  useEffect(() => {
+    if (permission === "default" && !busy) {
+      const timer = setTimeout(() => {
+        allow();
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [permission, busy]);
 
   return (
     <div className="fixed bottom-4 left-1/2 z-50 flex w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 items-center gap-3 rounded-2xl bg-[#1f3d32] px-4 py-3 text-white shadow-lg">
